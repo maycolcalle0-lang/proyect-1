@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Balance Gasolinera Pro v4.2</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0a7">
+  <style>
+    :root{ --bg:#0b0c0f; --card:#151821; --text:#e9eef5; --muted:#9fb0c3; --accent:#12b886; --accent-2:#228be6; --danger:#ff6b6b; --warning:#fcc419; --border:#233043; --ok:#51cf66; }
+    @media (prefers-color-scheme: light){ :root{ --bg:#f7fbff; --card:#fff; --text:#0b0c0f; --muted:#54677a; --accent:#0b9f71; --accent-2:#1c7ed6; --danger:#d94848; --warning:#e0a800; --border:#e6eef7; --ok:#2f9e44;} }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(0,0,0,.35),transparent),var(--bg);backdrop-filter:blur(6px);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:.75rem;justify-content:space-between}
+    header h1{font-size:1.02rem;margin:0} .badge{font-size:.78rem;color:var(--muted)}
+    .version{font-size:.72rem;color:var(--muted)}
+    .container{max-width:1100px;margin:0 auto;padding:1rem}
+    .tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin:.25rem 0 1rem}
+    .tab{padding:.55rem .8rem;border:1px solid var(--border);border-radius:.6rem;cursor:pointer;background:var(--card);color:var(--text);font-weight:600}
+    .tab.active{outline:2px solid var(--accent)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:.9rem;padding:1rem;margin:.8rem 0;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+    h2{font-size:1.0rem;margin:.2rem 0 .8rem} h3{font-size:.95rem;margin:.6rem 0;color:var(--muted)}
+    label{display:block;font-weight:600;margin:.5rem 0 .25rem}
+    input,select,textarea,button{width:100%;padding:.7rem .75rem;border-radius:.6rem;border:1px solid var(--border);background:transparent;color:var(--text);font-size:1rem}
+    textarea{min-height:80px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr;gap:.75rem}
+    @media(min-width:720px){.row.cols-2{grid-template-columns:1fr 1fr}} @media(min-width:980px){.row.cols-3{grid-template-columns:1fr 1fr 1fr}}
+    .btn{cursor:pointer;font-weight:700}.btn.primary{background:var(--accent);border-color:transparent;color:white}.btn.secondary{background:var(--accent-2);border-color:transparent;color:white}.btn.ghost{background:transparent;border:1px dashed var(--border)}
+    .danger{background:var(--danger);color:white}.muted{color:var(--muted)}.hidden{display:none!important}.note{background:rgba(255,255,0,.08);border:1px dashed var(--border);padding:.6rem;border-radius:.6rem;color:var(--muted)}
+    table{width:100%;border-collapse:collapse} th,td{padding:.55rem .5rem;border-bottom:1px dashed var(--border);text-align:right} th:first-child,td:first-child{text-align:left}
+    .chip{display:inline-block;padding:.25rem .5rem;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid var(--border);font-size:.8rem}
+    .ok{color:#51cf66}.bad{color:#ff6b6b}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex;gap:.6rem;align-items:center">
+      <img src="icon-512.png" alt="" style="width:28px;height:28px;border-radius:8px" />
+      <div><h1>Balance Gasolinera Pro</h1><div class="version">v4.2</div><div class="badge" id="badge"></div></div>
+    </div>
+    <button class="btn ghost" id="installBtn">➕ Instalar</button>
+  </header>
+
+  <div class="container">
+    <nav class="tabs">
+      <button class="tab active" data-tab="turno">Turno</button>
+      <button class="tab" data-tab="bombas">Abastecedoras</button>
+      <button class="tab" data-tab="historial">Historial</button>
+      <button class="tab" data-tab="ajustes">Ajustes</button>
+    </nav>
+
+    <section id="turno" class="card">
+      <div id="turnoSinAbrir">
+        <h2>Iniciar turno</h2>
+        <div class="note">El Historial se llena al tocar <b>Cerrar turno</b> (la previsualización no guarda).</div>
+        <div style="height:.5rem"></div>
+        <div id="startReadings"></div>
+        <div class="row cols-2">
+          <div><label>Notas (opcional)</label><textarea id="startNotes"></textarea></div>
+          <div><label>Precios usados</label><div id="priceSnapshot" class="muted">Se toma foto de precios al iniciar.</div></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end"><button class="btn primary" id="btnStart">Guardar e iniciar turno</button></div>
+      </div>
+
+      <div id="turnoAbierto" class="hidden">
+        <h2>Turno en curso</h2>
+        <div id="endReadings"></div>
+        <div class="row cols-3">
+          <div class="card">
+            <h3>Desglose (S/)</h3>
+            <label>Yape</label><input type="number" step="0.01" id="payYape" placeholder="0.00">
+            <label>Fiados</label><input type="number" step="0.01" id="payCredit" placeholder="0.00">
+            <label>Depósitos</label><input type="number" step="0.01" id="payDeposits" placeholder="0.00">
+          </div>
+          <div class="card">
+            <h3>Caja</h3>
+            <label>Efectivo contado</label><input type="number" step="0.01" id="cashCounted" placeholder="0.00">
+            <label>Ajustes (+/−)</label><input type="number" step="0.01" id="adjustments" placeholder="0.00">
+          </div>
+          <div class="card">
+            <h3>Notas</h3>
+            <input type="text" id="endNotes" placeholder="corte, cambio precio, etc.">
+            <div style="height:.5rem"></div>
+            <button class="btn secondary" id="btnPreview">Previsualizar</button>
+            <div style="height:.5rem"></div>
+            <button class="btn primary" id="btnClose">Cerrar turno</button>
+          </div>
+        </div>
+        <div id="preview" class="card hidden"></div>
+      </div>
+    </section>
+
+    <section id="bombas" class="card hidden">
+      <h2>Abastecedoras</h2>
+      <div id="pumpList"></div>
+      <button class="btn ghost" id="addPump">➕ Agregar</button>
+    </section>
+
+    <section id="historial" class="card hidden">
+      <h2>Historial</h2>
+      <div class="note" id="historyHint" style="display:none">Para ver datos aquí, ve a Turno y toca <b>Cerrar turno</b>.</div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn ghost" id="btnExportCSV">Exportar CSV</button>
+        <button class="btn ghost" id="btnBackup">Respaldo (.json)</button>
+        <label class="btn ghost" style="cursor:pointer">Importar respaldo<input type="file" id="importBackup" accept="application/json" style="display:none"></label>
+      </div>
+      <div id="historyList"></div>
+    </section>
+
+    <section id="ajustes" class="card hidden">
+      <h2>Ajustes</h2>
+      <div class="note">Diagnóstico: <span id="diag"></span></div>
+      <div class="row cols-3">
+        <div><label>Moneda</label><input type="text" id="currency" value="S/"></div>
+        <div><label>Unidad</label><select id="unit"><option value="galón">Galón</option><option value="litro">Litro</option></select></div>
+        <div><label>Decimales lectura</label><input type="number" id="decimals" min="0" max="4" value="0"></div>
+      </div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn ghost" id="btnReload">Borrar caché y recargar</button>
+        <button class="btn primary" id="saveSettings">Guardar ajustes</button>
+      </div>
+      <div class="muted" style="margin-top:.5rem">Versión: {VERSION}</div>
+    </section>
+  </div>
+
+<script>
+(async function(){{
+  const VERSION='{VERSION}';
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const fmt=new Intl.DateTimeFormat(navigator.language||'es-PE',{{dateStyle:'medium', timeStyle:'short'}});
+  const LS_KEY='gs_app_state_universal';
+  const DB_NAME='balance_gas_db', STORE='kv';
+
+  let idbDB=null;
+  function idbOpen(){{return new Promise((res,rej)=>{{const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=()=>{{r.result.createObjectStore(STORE);}}; r.onsuccess=()=>{{idbDB=r.result; res();}}; r.onerror=()=>rej(r.error);}});}}
+  function idbGet(key){{return new Promise((res,rej)=>{{if(!idbDB) return res(undefined); const tx=idbDB.transaction(STORE,'readonly'); const st=tx.objectStore(STORE); const g=st.get(key); g.onsuccess=()=>res(g.result); g.onerror=()=>rej(g.error);}});}}
+  function idbSet(key,val){{return new Promise((res,rej)=>{{if(!idbDB) return res(false); const tx=idbDB.transaction(STORE,'readwrite'); const st=tx.objectStore(STORE); const p=st.put(val,key); p.onsuccess=()=>res(true); p.onerror=()=>rej(p.error);}});}}
+
+  const state={{settings:{{currency:'S/',unit:'galón',decimals:0}},pumps:[],shifts:[],openShift:null}};
+  let diag={{local:'?', idb:'?', sw: ('serviceWorker' in navigator)}};
+
+  function storageOK(){{ try{{ const k='__t'+Date.now(); localStorage.setItem(k,'1'); localStorage.removeItem(k); return true; }}catch(e){{ return false; }} }}
+
+  async function persistSnapshot(){{ try{{ localStorage.setItem(LS_KEY, JSON.stringify(state)); diag.local='OK'; }}catch(e){{ diag.local='FALLO'; }} try{{ await idbSet(LS_KEY, state); diag.idb='OK'; }}catch(e){{ diag.idb='FALLO'; }} updateDiag(); }}
+  function readLocal(){{ try{{ const raw=localStorage.getItem(LS_KEY); if(raw) return JSON.parse(raw); }}catch(e){{}} return null; }}
+
+  try{{ await idbOpen(); }}catch(e){{ diag.idb='FALLO'; }}
+  const fromIDB = await idbGet(LS_KEY);
+  const fromLS = readLocal();
+  if(fromIDB) Object.assign(state, fromIDB);
+  else if(fromLS) Object.assign(state, fromLS);
+  else {{
+    state.pumps=[
+      {{name:'Abastecedora 1', fuel:'90 - Gasolina'}},
+      {{name:'Abastecedora 2', fuel:'B5 - Petróleo'}},
+      {{name:'Abastecedora 3', fuel:'90 - Gasolina'}},
+      {{name:'Abastecedora 4', fuel:'B5 - Petróleo'}},
+      {{name:'Abastecedora 5', fuel:'90 - Gasolina'}},
+      {{name:'Abastecedora 6', fuel:'B5 - Petróleo'}}
+    ].map(p=>({{id:crypto.randomUUID(), price:0, active:true, ...p}}));
+    await persistSnapshot();
+  }}
+  diag.local = storageOK()? 'OK' : 'BLOQUEADO';
+
+  function save(){{ persistSnapshot(); updateBadge(); updateDiag(); }}
+  function updateBadge(){{ const n=state.pumps.filter(p=>p.active).length; $('#badge').textContent = state.openShift?`Turno abierto • ${{n}}`:`${{n}} abastecedoras`; }}
+  function updateDiag(){{ $('#diag').textContent = `local: ${{diag.local}} • idb: ${{diag.idb}} • sw: ${{diag.sw?'ON':'OFF'}} • turnos: ${{state.shifts.length}} • {VERSION}`; }}
+
+  $$('.tab').forEach(t=>t.addEventListener('click',()=>{{ $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); ['turno','bombas','historial','ajustes'].forEach(id=>$('#'+id).classList.add('hidden')); $('#'+t.dataset.tab).classList.remove('hidden'); if(t.dataset.tab==='turno') renderShift(); if(t.dataset.tab==='bombas') renderPumps(); if(t.dataset.tab==='historial') renderHistory(); if(t.dataset.tab==='ajustes') renderSettings(); }}));
+
+  function renderSettings(){{ $('#currency').value=state.settings.currency; $('#unit').value=state.settings.unit; $('#decimals').value=state.settings.decimals; }}
+  $('#saveSettings').addEventListener('click',()=>{{ state.settings.currency=$('#currency').value||'S/'; state.settings.unit=$('#unit').value; state.settings.decimals=Math.max(0,Math.min(4,parseInt($('#decimals').value||'0',10))); save(); alert('Ajustes guardados.'); }});
+  $('#btnReload').addEventListener('click', async ()=>{{ if('serviceWorker' in navigator){{ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); if('caches' in window){{ const ks=await caches.keys(); for(const k of ks) await caches.delete(k); }} }} location.reload(true); }});
+
+  function renderPumps(){{ const w=$('#pumpList'); w.innerHTML=''; state.pumps.forEach(p=>w.appendChild(pumpCard(p))); }}
+  function pumpCard(p){{ const c=document.createElement('div'); c.className='card'; c.innerHTML=`<div class="row cols-3">
+      <div><label>Nombre</label><input value="${{p.name}}" data-id="${{p.id}}" data-field="name"></div>
+      <div><label>Combustible</label><input value="${{p.fuel}}" data-id="${{p.id}}" data-field="fuel"></div>
+      <div><label>Precio por ${{state.settings.unit}}</label><input type="number" step="0.001" value="${{p.price}}" data-id="${{p.id}}" data-field="price"></div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.5rem">
+      <label style="display:flex;gap:.4rem;align-items:center"><input type="checkbox" ${{p.active?'checked':''}} data-id="${{p.id}}" data-field="active"> Activa</label>
+      <button class="btn danger" data-action="delete" data-id="${{p.id}}">Eliminar</button>
+    </div>`;
+    c.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',e=>{{ const id=e.target.dataset.id,field=e.target.dataset.field; const pump=state.pumps.find(x=>x.id===id); if(!pump) return; if(field==='price') pump.price=parseFloat(e.target.value||'0'); else if(field==='active') pump.active=e.target.checked; else pump[field]=e.target.value; save(); }}));
+    c.querySelector('[data-action="delete"]').addEventListener('click',()=>{{ if(!confirm('¿Eliminar abastecedora?')) return; state.pumps=state.pumps.filter(x=>x.id!==p.id); save(); renderPumps(); renderShift(); }});
+    return c; }}
+  $('#addPump').addEventListener('click',()=>{{ state.pumps.push({{id:crypto.randomUUID(),name:`Abastecedora ${{state.pumps.length+1}}`,fuel:'90 - Gasolina',price:0,active:true}}); save(); renderPumps(); renderShift(); }});
+
+  function step(d){{ const dec=d??state.settings.decimals; return (1/Math.pow(10,dec)).toFixed(dec); }}
+
+  function renderShift(){{ const open=!!state.openShift; $('#turnoSinAbrir').classList.toggle('hidden',open); $('#turnoAbierto').classList.toggle('hidden',!open); $('#preview').classList.add('hidden');
+    if(!open){{ const wrap=$('#startReadings'); wrap.innerHTML=''; const act=state.pumps.filter(p=>p.active); const grid=document.createElement('div'); grid.className='row cols-3';
+      act.forEach(p=>{{ const el=document.createElement('div'); el.className='card'; el.innerHTML=`<h3>${{p.name}} <span class="chip">${{p.fuel}}</span></h3><label>Lectura inicial (${{state.settings.unit}})</label><input type="number" step="${{step()}}" data-pump="${{p.id}}" placeholder="0"><div class="muted">Precio: ${{state.settings.currency}} ${{p.price.toFixed(3)}} / ${{state.settings.unit}}</div>`; grid.appendChild(el); }});
+      wrap.appendChild(grid); $('#priceSnapshot').textContent='Se tomarán los precios actuales al iniciar.';
+    }}else{{ const wrap=$('#endReadings'); wrap.innerHTML=''; const grid=document.createElement('div'); grid.className='row cols-3'; const map=Object.fromEntries(state.pumps.map(p=>[p.id,p]));
+      Object.entries(state.openShift.startReadings).forEach(([pid,sv])=>{{ const p=map[pid]; if(!p) return; const price=state.openShift.priceSnapshot[pid]??p.price;
+        const d=document.createElement('div'); d.className='card'; d.innerHTML=`<h3>${{p.name}} <span class="chip">${{p.fuel}}</span></h3><div class="muted">Inicio: <span class="mono">${{format(sv)}}</span> • Precio usado: ${{state.openShift.currency}} ${{price.toFixed(3)}} / ${{state.openShift.unit}}</div><label>Lectura final (${{state.openShift.unit}})</label><input type="number" step="${{step(state.openShift.decimals)}}" data-end-pump="${{pid}}" placeholder="${{format(sv)}}">`; grid.appendChild(d); }});
+      wrap.appendChild(grid);
+    }}
+  }}
+
+  $('#btnStart').addEventListener('click',()=>{{ const inputs=$$('#startReadings [data-pump]'); if(inputs.length===0){{ alert('No hay abastecedoras activas.'); return; }} const start={{}}; for(const i of inputs){{ const v=parseFloat(i.value); if(isNaN(v)){{ alert('Completa todas las lecturas iniciales.'); return; }} start[i.dataset.pump]=round(v,state.settings.decimals); }} const snap={{}}; state.pumps.forEach(p=>{{ if(p.active) snap[p.id]=parseFloat(p.price||0) }}); state.openShift={{ id:crypto.randomUUID(), startTime:new Date().toISOString(), startNotes:$('#startNotes').value||'', unit:state.settings.unit, currency:state.settings.currency, decimals:state.settings.decimals, startReadings:start, priceSnapshot:snap }}; save(); renderShift(); alert('Turno iniciado.'); }});
+
+  $('#btnPreview').addEventListener('click',()=>{{ const calc=totals(); preview(calc); }});
+  $('#btnClose').addEventListener('click',async ()=>{{ const calc=totals(true); if(!calc) return; const cash=+(($('#cashCounted').value)||0), adj=+(($('#adjustments').value)||0), y=+(($('#payYape').value)||0), c=+(($('#payCredit').value)||0), d=+(($('#payDeposits').value)||0);
+    const net=round(calc.expected - y - c - d + adj, 2);
+    const shift={{ id:state.openShift.id, startTime:state.openShift.startTime, endTime:new Date().toISOString(), unit:state.openShift.unit, currency:state.openShift.currency, decimals:state.openShift.decimals, startNotes:state.openShift.startNotes, endNotes:$('#endNotes').value||'', priceSnapshot:state.openShift.priceSnapshot, startReadings:state.openShift.startReadings, endReadings:calc.endReadings, perPump:calc.perPump, grossSales:calc.expected, payYape:y, payCredit:c, payDeposits:d, adjustments:adj, netExpectedCash:net, cashCounted:cash, difference:round(cash-net,2) }};
+    state.shifts.unshift(shift); state.openShift=null; await persistSnapshot(); document.querySelector('.tab[data-tab="historial"]').click(); alert('Turno cerrado y guardado. Abriendo Historial…'); }});
+
+  function totals(validate=false){{ if(!state.openShift) return null; const inputs=$$('#endReadings [data-end-pump]'); const end={{}};
+    for(const i of inputs){{ const v=parseFloat(i.value); if(isNaN(v)){{ if(validate){{ alert('Faltan lecturas finales.'); return null; }} else continue; }} end[i.dataset.endPump]=round(v,state.openShift.decimals); }}
+    if(validate && Object.keys(end).length!==Object.keys(state.openShift.startReadings).length){{ alert('Faltan lecturas finales.'); return null; }}
+    const per={{}}; let expected=0;
+    for(const [pid,sv] of Object.entries(state.openShift.startReadings)){{ const ev=end[pid]; if(ev==null) continue; const price=state.openShift.priceSnapshot[pid]??0; const qty=round(ev-sv,state.openShift.decimals); if(validate && qty<0){{ alert('Final menor que inicial. Usa Ajustes.'); return null; }} const amount=round(qty*price,2); per[pid]={{qty,amount,price,start:sv,end:ev}}; expected+=amount; }}
+    return {{ perPump:per, expected:round(expected,2), endReadings:end }};
+  }}
+
+  function preview(calc){{ const map=Object.fromEntries(state.pumps.map(p=>[p.id,p])); const div=$('#preview'); if(!calc){{ div.classList.add('hidden'); return; }} let rows=''; let totalQty=0;
+    for(const [pid,d] of Object.entries(calc.perPump)){{ const p=map[pid]; totalQty+=d.qty; rows+=`<tr><td>${{p?.name??pid}}</td><td class="mono">${{format(d.start)}}</td><td class="mono">${{format(d.end)}}</td><td class="mono">${{format(d.qty)}}</td><td class="mono">${{state.settings.currency}} ${{d.price.toFixed(3)}}</td><td class="mono">${{state.settings.currency}} ${{d.amount.toFixed(2)}}</td></tr>`; }}
+    const y=+(($('#payYape').value)||0), c=+(($('#payCredit').value)||0), d=+(($('#payDeposits').value)||0), a=+(($('#adjustments').value)||0), cash=+(($('#cashCounted').value)||0);
+    const net=round(calc.expected - y - c - d + a, 2), diff=round(cash - net, 2);
+    div.innerHTML = `<h3>Previsualización</h3><table><thead><tr><th>Abastecedora</th><th>Inicio</th><th>Final</th><th>Galones</th><th>Precio</th><th>Importe</th></tr></thead><tbody>${{rows}}</tbody>
+      <tfoot><tr><td colspan="3">Totales</td><td class="mono">${{format(totalQty)}}</td><td></td><td class="mono">${{state.settings.currency}} ${{calc.expected.toFixed(2)}}</td></tr>
+      <tr><td colspan="5">− Yape</td><td class="mono">− ${{state.settings.currency}} ${{y.toFixed(2)}}</td></tr>
+      <tr><td colspan="5">− Fiados</td><td class="mono">− ${{state.settings.currency}} ${{c.toFixed(2)}}</td></tr>
+      <tr><td colspan="5">− Depósitos</td><td class="mono">− ${{state.settings.currency}} ${{d.toFixed(2)}}</td></tr>
+      <tr><td colspan="5">± Ajustes</td><td class="mono">${{state.settings.currency}} ${{a.toFixed(2)}}</td></tr>
+      <tr><td colspan="5"><strong>Efectivo esperado</strong></td><td class="mono"><strong>${{state.settings.currency}} ${{net.toFixed(2)}}</strong></td></tr>
+      <tr><td colspan="5">Efectivo contado</td><td class="mono">${{state.settings.currency}} ${{cash.toFixed(2)}}</td></tr>
+      <tr><td colspan="5">Diferencia</td><td class="mono ${{diff===0?'ok':(diff<0?'bad':'ok')}}">${{state.settings.currency}} ${{diff.toFixed(2)}}</td></tr></tfoot></table>`;
+    div.classList.remove('hidden');
+  }}
+
+  function format(n,d){{ const dec=d??state.settings.decimals; return n?.toFixed(dec)??''; }}
+  function round(n,d){{ const m=Math.pow(10,d); return Math.round((n+Number.EPSILON)*m)/m; }}
+
+  let deferredPrompt; window.addEventListener('beforeinstallprompt',e=>{{e.preventDefault(); deferredPrompt=e; $('#installBtn').classList.remove('hidden');}});
+  $('#installBtn').addEventListener('click',async()=>{{ if(!deferredPrompt){{ alert('Sirve por HTTPS para instalar.'); return; }} deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; }});
+  if('serviceWorker' in navigator){{ window.addEventListener('load',()=>{{ navigator.serviceWorker.register('./sw.js').catch(()=>{{}}); }}); }}
+
+  updateBadge(); renderSettings(); renderPumps(); renderShift(); updateDiag();
+}})();</script>
+</body></html>
